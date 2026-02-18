@@ -27,7 +27,7 @@ function preload() {
 }
 
 function create() {
-  this.add.text(160, 120, 'Scapeagochi', {
+  this.add.text(160, 120, 'Scapeagotchi', {
     fontSize: 16,
     color: '#eaeaea'
   }).setOrigin(0.5);
