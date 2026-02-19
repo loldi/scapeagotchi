@@ -57,13 +57,6 @@ export const ITEMS = {
     type: 'food',
     stackable: true,
     maxStack: 999
-  },
-  debug_dagger: {
-    id: 'debug_dagger',
-    name: '[DEBUG] Insta-kill Dagger',
-    type: 'weapon',
-    stackable: false,
-    weaponId: 'debug_dagger'
   }
 };
 

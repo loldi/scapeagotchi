@@ -13,14 +13,6 @@ export default class GameScene extends Phaser.Scene {
     super({ key: 'GameScene' });
   }
 
-  preload() {
-    this.load.bitmapFont(
-      'minogram',
-      '/assets/fonts/minogram_6x10.png',
-      '/assets/fonts/minogram_6x10.xml'
-    );
-  }
-
   create() {
     const player = getPlayer();
     const W = this.scale.width;
@@ -950,15 +942,6 @@ export default class GameScene extends Phaser.Scene {
         g.fillEllipse(0, 0, s * 0.8, s * 1.0);
         g.lineStyle(1, 0xddddcc);
         g.strokeEllipse(0, 0, s * 0.8, s * 1.0);
-        break;
-      }
-      case 'debug_dagger': {
-        g.fillStyle(0x888899, 1);
-        g.fillTriangle(-s * 0.2, 0, s * 1.2, -s * 0.5, s * 1.2, s * 0.5);
-        g.lineStyle(1, 0x555566);
-        g.strokeTriangle(-s * 0.2, 0, s * 1.2, -s * 0.5, s * 1.2, s * 0.5);
-        g.fillStyle(0xcc9944, 1);
-        g.fillRoundedRect(-s * 0.5, -s * 0.15, s * 0.5, s * 0.3, 1);
         break;
       }
       default:

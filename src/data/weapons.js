@@ -24,14 +24,6 @@ export const WEAPONS = {
     attackSpeed: 3600, // 3.6 seconds
     attackBonus: 18,
     strengthBonus: 19
-  },
-  debug_dagger: {
-    id: 'debug_dagger',
-    name: '[DEBUG] Insta-kill Dagger',
-    attackSpeed: 1200, // Fast for testing
-    attackBonus: 999,
-    strengthBonus: 999,
-    debugInstaKill: true
   }
 };
 

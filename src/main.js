@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { initGameState } from './state/gameState.js';
+import LoadScene from './scenes/LoadScene.js';
 import GameScene from './scenes/GameScene.js';
 
 initGameState();
@@ -51,7 +52,7 @@ const config = {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH
   },
-  scene: [GameScene],
+  scene: [LoadScene, GameScene],
   callbacks: {
     postBoot: (game) => {
       // Force crisp pixel scaling on the canvas (nearest-neighbor when browser scales it)

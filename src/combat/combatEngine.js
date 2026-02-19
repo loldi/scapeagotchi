@@ -67,11 +67,6 @@ function rollDamage(maxHit) {
 export function performAttack(attacker, defender) {
   // Get attacker's weapon (or unarmed)
   const weapon = attacker.weapon || getWeapon('unarmed');
-
-  // Debug dagger: always hit, always insta-kill (for loot testing)
-  if (weapon.debugInstaKill) {
-    return { hit: true, damage: 999 };
-  }
   
   // Calculate rolls
   const attackRoll = calculateAttackRoll(

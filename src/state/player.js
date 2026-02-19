@@ -30,7 +30,7 @@ export function createPlayer() {
     stats,
     inventory: [], // { itemId, quantity } per slot, max 28
     equipment: {
-      weapon: 'debug_dagger', // DEBUG: insta-kill chickens for loot testing
+      weapon: null,
       offhand: null,
       head: null,
       body: null,
