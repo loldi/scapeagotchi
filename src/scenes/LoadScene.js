@@ -45,11 +45,12 @@ export default class LoadScene extends Phaser.Scene {
       barFill.fillRoundedRect(barX + 3, barY + 3, (barW - 6) * value, barH - 6, 2);
     });
 
-    // Load assets
+    // Load assets (base-aware for GitHub Pages)
+    const base = import.meta.env.BASE_URL;
     this.load.bitmapFont(
       'minogram',
-      '/assets/fonts/minogram_6x10.png',
-      '/assets/fonts/minogram_6x10.xml'
+      base + 'assets/fonts/minogram_6x10.png',
+      base + 'assets/fonts/minogram_6x10.xml'
     );
   }
 
