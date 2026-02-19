@@ -13,7 +13,26 @@ export default class GameScene extends Phaser.Scene {
     super({ key: 'GameScene' });
   }
 
+  /** Phaser Text with setPadding to avoid BitmapText cropping (Press Start 2P). */
+  makeText(x, y, text, color = 0xeaeaea, size = 10) {
+    const hex = (n) => '#' + n.toString(16).padStart(6, '0');
+    const c = typeof color === 'number' ? hex(color) : color;
+    const t = this.add.text(x, y, text, {
+      fontSize: `${size}px`,
+      fontFamily: '"Press Start 2P", monospace',
+      color: c
+    });
+    t.setPadding(10, 6, 10, 6);
+    return t;
+  }
+
   create() {
+    this.chicken = null;
+    this.chickenIdleTween = null;
+    this.chickenWanderTween = null;
+    this.combatState = null;
+    this.combatNpc = null;
+
     const player = getPlayer();
     const W = this.scale.width;
     const H = this.scale.height;
@@ -26,15 +45,17 @@ export default class GameScene extends Phaser.Scene {
       if (this.chicken && this.hitTestChicken(gx, gy)) this.showNpcContextMenu(gx, gy, 'chicken');
       else this.showNpcContextMenu(gx, gy, null); // show Cancel-only menu so we know right-click fired
     };
-    // 1) Native contextmenu on wrapper (most reliable)
-    const wrapper = document.getElementById('game-wrapper') || (this.sys.game.canvas && this.sys.game.canvas.parentElement);
-    if (wrapper) {
-      wrapper.addEventListener('contextmenu', (e) => {
+    // 1) Native contextmenu on wrapper (most reliable) — store refs for cleanup on shutdown
+    this._wrapper = document.getElementById('game-wrapper') || (this.sys.game.canvas && this.sys.game.canvas.parentElement);
+    if (this._wrapper) {
+      this._contextMenuHandler = (e) => {
         e.preventDefault();
         e.stopPropagation();
+        if (!this.scene.isActive('GameScene')) return;
         const gameXY = this.screenToGame(e.clientX, e.clientY);
         if (gameXY) tryShowChickenMenu(gameXY[0], gameXY[1]);
-      }, true);
+      };
+      this._wrapper.addEventListener('contextmenu', this._contextMenuHandler, true);
     }
     // 2) Phaser pointerdown with button 2 in case it fires
     this.input.on('pointerdown', (pointer, localX, localY, event) => {
@@ -48,9 +69,15 @@ export default class GameScene extends Phaser.Scene {
     const Y_NAV = 545;
     const PAD = 30;
 
+    const hex = (n) => '#' + n.toString(16).padStart(6, '0');
     const txt = (x, y, text, color = 0xeaeaea, size = 10) => {
-      const t = this.add.bitmapText(x, y, 'minogram', text, size);
-      if (color !== 0xffffff) t.setTint(color);
+      const c = typeof color === 'number' ? hex(color) : color;
+      const t = this.add.text(x, y, text, {
+        fontSize: `${size}px`,
+        fontFamily: '"Press Start 2P", monospace',
+        color: c
+      });
+      t.setPadding(10, 6, 10, 6);
       return t;
     };
 
@@ -209,10 +236,10 @@ export default class GameScene extends Phaser.Scene {
     const hpBg = this.add.graphics();
     hpBg.fillStyle(0x222244, 0.9);
     hpBg.fillRoundedRect(PAD, Y_TOP - 12, 112, 36, 8);
-    this.hpLabel = txt(PAD + 56, Y_TOP + 4, hpStr, 0xaaffaa, 10).setOrigin(0.5, 0);
+    this.hpLabel = txt(PAD + 56, Y_TOP + 6, hpStr, 0xaaffaa, 10).setOrigin(0.5, 0.5);
 
     // Top-center: location label
-    this.currentLocation = 'Lumby Farm';
+    this.currentLocation = 'Lumby Coop';
     const locBoxW = 140;
     const locBoxH = 36;
     const locBg = this.add.graphics();
@@ -220,13 +247,13 @@ export default class GameScene extends Phaser.Scene {
     locBg.fillRoundedRect(centerX - locBoxW / 2, Y_TOP - 12, locBoxW, locBoxH, 8);
     locBg.lineStyle(1, 0x444466);
     locBg.strokeRoundedRect(centerX - locBoxW / 2, Y_TOP - 12, locBoxW, locBoxH, 8);
-    this.locationLabel = txt(centerX, Y_TOP + 4, this.currentLocation, 0xccccdd, 10).setOrigin(0.5, 0);
+    this.locationLabel = txt(centerX, Y_TOP + 6, this.currentLocation, 0xccccdd, 10).setOrigin(0.5, 0.5);
 
     // Top-right: status (IDLE)
     const statusBg = this.add.graphics();
     statusBg.fillStyle(0x222244, 0.9);
     statusBg.fillRoundedRect(W - PAD - 88, Y_TOP - 12, 88, 36, 8);
-    this.statusLabel = txt(W - PAD - 44, Y_TOP + 4, 'IDLE', 0xaaaacc, 10).setOrigin(0.5, 0);
+    this.statusLabel = txt(W - PAD - 44, Y_TOP + 6, 'IDLE', 0xaaaacc, 10).setOrigin(0.5, 0.5);
 
     // Character — positioned left of center (per layout)
     const scaperX = centerX - 100;
@@ -374,9 +401,15 @@ export default class GameScene extends Phaser.Scene {
     this.closeContextMenu();
     const W = this.gameW;
     const H = this.gameH;
+    const hex = (n) => '#' + n.toString(16).padStart(6, '0');
     const txt = (x, y, text, color = 0xeaeaea, size = 10) => {
-      const t = this.add.bitmapText(x, y, 'minogram', text, size);
-      if (color !== 0xffffff) t.setTint(color);
+      const c = typeof color === 'number' ? hex(color) : color;
+      const t = this.add.text(x, y, text, {
+        fontSize: `${size}px`,
+        fontFamily: '"Press Start 2P", monospace',
+        color: c
+      });
+      t.setPadding(10, 6, 10, 6);
       return t;
     };
 
@@ -494,12 +527,13 @@ export default class GameScene extends Phaser.Scene {
     // XP bar fill (purple/blue gradient)
     this.statsExpFill = this.add.graphics();
     container.add(this.statsExpFill);
-    this.updateExpBar();
-    
-    // XP text
+
+    // XP text (create before updateExpBar so setText has valid target)
     this.statsExpText = txt(W / 2, expBarY + 12, `XP: ${player.experience || 0}`, 0xaaaaff, 8);
     this.statsExpText.setOrigin(0.5);
     container.add(this.statsExpText);
+
+    this.updateExpBar();
     
     const colY = 76;
     const rowH = 20;
@@ -518,7 +552,6 @@ export default class GameScene extends Phaser.Scene {
   }
   
   createChicken(x, y) {
-    // Don't spawn if chicken already exists
     if (this.chicken) return;
     
     this.chickenBaseX = x;
@@ -566,18 +599,10 @@ export default class GameScene extends Phaser.Scene {
     });
 
     this.chicken = chicken;
-    
+    chicken.setDepth(100);
+
     // Start wandering movement (only when not in combat)
     this.startChickenWandering();
-    
-    // Spawn animation (fade in)
-    chicken.setAlpha(0);
-    this.tweens.add({
-      targets: chicken,
-      alpha: 1,
-      duration: 300,
-      ease: 'Power2'
-    });
   }
   
   startChickenWandering() {
@@ -662,8 +687,12 @@ export default class GameScene extends Phaser.Scene {
     this.statsExpFill.fillStyle(0x6666ff, 1);
     this.statsExpFill.fillRoundedRect(expBarX, expBarY - expBarH / 2, fillW, expBarH, 2);
     
-    if (this.statsExpText) {
-      this.statsExpText.setText(`XP: ${exp}`);
+    if (this.statsExpText && this.statsExpText.setText) {
+      try {
+        this.statsExpText.setText(`XP: ${exp}`);
+      } catch (e) {
+        console.warn('updateExpBar setText failed:', e);
+      }
     }
   }
   
@@ -705,9 +734,15 @@ export default class GameScene extends Phaser.Scene {
         return;
       }
 
+      const hex = (n) => '#' + n.toString(16).padStart(6, '0');
       const txt = (px, py, text, color = 0xeaeaea, size = 10) => {
-        const t = this.add.bitmapText(px, py, 'minogram', text, size);
-        if (color !== 0xffffff) t.setTint(color);
+        const c = typeof color === 'number' ? hex(color) : color;
+        const t = this.add.text(px, py, text, {
+          fontSize: `${size}px`,
+          fontFamily: '"Press Start 2P", monospace',
+          color: c
+        });
+        t.setPadding(10, 6, 10, 6);
         return t;
       };
 
@@ -807,9 +842,15 @@ export default class GameScene extends Phaser.Scene {
     });
     
     // Show pickup notification
+    const hex = (n) => '#' + n.toString(16).padStart(6, '0');
     const txt = (x, y, text, color = 0xeaeaea, size = 10) => {
-      const t = this.add.bitmapText(x, y, 'minogram', text, size);
-      if (color !== 0xffffff) t.setTint(color);
+      const c = typeof color === 'number' ? hex(color) : color;
+      const t = this.add.text(x, y, text, {
+        fontSize: `${size}px`,
+        fontFamily: '"Press Start 2P", monospace',
+        color: c
+      });
+      t.setPadding(10, 6, 10, 6);
       return t;
     };
     const itemName = itemData?.name || itemId;
@@ -993,10 +1034,9 @@ export default class GameScene extends Phaser.Scene {
         const qty = slot.quantity || 1;
 
         // Name above icon - narrower width with padding so no cutoff
-        const nameText = this.add.bitmapText(0, -24, 'minogram', name, 8);
-        nameText.setTint(0xddddff);
+        const nameText = this.makeText(0, -24, name, 0xddddff, 8);
         nameText.setOrigin(0.5);
-        nameText.setMaxWidth(58);
+        nameText.setWordWrapWidth(58);
         nameText.setAlpha(1);
         nameText.setVisible(true);
         slotContainer.add(nameText);
@@ -1007,8 +1047,7 @@ export default class GameScene extends Phaser.Scene {
 
         // Quantity below icon - use parentheses format for reliable rendering
         if (qty > 1) {
-          const qtyText = this.add.bitmapText(0, 20, 'minogram', `(${qty})`, 10);
-          qtyText.setTint(0xeeeeff);
+          const qtyText = this.makeText(0, 20, `(${qty})`, 0xeeeeff, 10);
           qtyText.setOrigin(0.5);
           qtyText.setAlpha(1);
           qtyText.setVisible(true);
@@ -1075,8 +1114,24 @@ export default class GameScene extends Phaser.Scene {
     container.add(bg);
 
     container.add(txt(W / 2, 24, 'Menu', 0xffffff, 14).setOrigin(0.5));
-    container.add(txt(W / 2, 200, 'Settings & more', 0x888888).setOrigin(0.5));
-    container.add(txt(W / 2, 240, 'Coming soon', 0x555566, 8).setOrigin(0.5));
+    const goMapBtn = this.add.graphics();
+    goMapBtn.fillStyle(0x333355, 0.9);
+    goMapBtn.fillRoundedRect(W / 2 - 80, 170, 160, 40, 4);
+    goMapBtn.lineStyle(1, 0x555588);
+    goMapBtn.strokeRoundedRect(W / 2 - 80, 170, 160, 40, 4);
+    container.add(goMapBtn);
+    container.add(txt(W / 2, 190, 'World Map', 0xaaaadd, 10).setOrigin(0.5));
+    const goMapHit = this.add.rectangle(W / 2, 190, 160, 40);
+    goMapHit.setInteractive({ useHandCursor: true });
+    goMapHit.on('pointerdown', () => {
+      this.statsPanel.setVisible(false);
+      this.inventoryPanel.setVisible(false);
+      this.equipmentPanel.setVisible(false);
+      this.menuPanel.setVisible(false);
+      this.scene.start('OverworldMapScene', { from: 'GameScene' });
+    });
+    container.add(goMapHit);
+    container.add(txt(W / 2, 240, 'Settings & more coming soon', 0x555566, 8).setOrigin(0.5));
   }
 
   startCombat(npcId) {
@@ -1506,8 +1561,7 @@ export default class GameScene extends Phaser.Scene {
   }
   
   showDamageNumber(x, y, damage, color = 0xff6666) {
-    const txt = this.add.bitmapText(x, y, 'minogram', `-${damage}`, 10);
-    txt.setTint(color);
+    const txt = this.makeText(x, y, `-${damage}`, color, 10);
     txt.setOrigin(0.5);
     
     this.tweens.add({
@@ -1521,8 +1575,7 @@ export default class GameScene extends Phaser.Scene {
   }
   
   showMissIndicator(x, y) {
-    const txt = this.add.bitmapText(x, y, 'minogram', 'MISS', 10);
-    txt.setTint(0xaaaaaa); // Gray color for misses
+    const txt = this.makeText(x, y, 'MISS', 0xaaaaaa, 10);
     txt.setOrigin(0.5);
     
     // Slight side-to-side wobble for misses
@@ -1544,6 +1597,14 @@ export default class GameScene extends Phaser.Scene {
         });
       }
     });
+  }
+
+  shutdown() {
+    if (this._wrapper && this._contextMenuHandler) {
+      this._wrapper.removeEventListener('contextmenu', this._contextMenuHandler, true);
+      this._wrapper = null;
+      this._contextMenuHandler = null;
+    }
   }
 
   update() {
