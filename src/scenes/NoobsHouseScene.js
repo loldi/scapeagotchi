@@ -2,12 +2,17 @@
  * Starting area: simple room where new players spawn. Leave to go to Lumby Coop.
  */
 
+import { setupPlayerUI } from '../ui/playerPanels.js';
+import { setCurrentScene, saveGame } from '../state/save.js';
+
 export default class NoobsHouseScene extends Phaser.Scene {
   constructor() {
     super({ key: 'NoobsHouseScene' });
   }
 
   create() {
+    setCurrentScene('NoobsHouseScene');
+    saveGame();
     const W = this.scale.width;
     const H = this.scale.height;
     const centerX = W / 2;
@@ -146,6 +151,9 @@ export default class NoobsHouseScene extends Phaser.Scene {
     this.locationLabel.setOrigin(0.5, 0.5);
     this.locationLabel.setDepth(500);
     this.add.existing(this.locationLabel);
+
+    setupPlayerUI(this, 'NoobsHouseScene');
+    this.gameW = W;
 
     // --- Player character (center) ---
     const scaperX = centerX;

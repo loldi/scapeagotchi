@@ -28,6 +28,7 @@ export function createPlayer() {
 
   return {
     stats,
+    gold: 100,
     inventory: [], // { itemId, quantity } per slot, max 28
     equipment: {
       weapon: null,

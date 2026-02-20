@@ -1,7 +1,9 @@
 /**
- * Overworld map: graphical layout with Castle → House → Coop, connected by paths.
+ * Overworld map: Castle → House → Mines (branch) → Coop, connected by paths.
  * Uses Phaser Text with setPadding to avoid BitmapText cropping.
  */
+
+import { setCurrentScene, saveGame } from '../state/save.js';
 
 export default class OverworldMapScene extends Phaser.Scene {
   constructor() {
@@ -9,6 +11,8 @@ export default class OverworldMapScene extends Phaser.Scene {
   }
 
   create(data = {}) {
+    setCurrentScene('OverworldMapScene');
+    saveGame();
     const fromScene = data.from || 'NoobsHouseScene';
     const W = this.scale.width;
     const H = this.scale.height;
@@ -37,32 +41,46 @@ export default class OverworldMapScene extends Phaser.Scene {
     // Title
     txt(centerX, 35, 'Where to?', '#eaeacc', 12);
 
-    // --- Location positions: Castle (left) → House (center) → Coop (right) ---
-    const castleX = 160;
-    const houseX = centerX;
-    const coopX = W - 160;
+    // --- Location positions: Castle → House → Mines (branch up) → Coop ---
+    const castleX = 140;
+    const houseX = 280;
+    const minesX = 480;
+    const minesY = 240;  // Above main path, reached by branch
+    const coopX = W - 140;
     const groundY = 320;
     const buildingBaseY = groundY - 20;
 
-    // --- Winding path (dirt road) - ribbon connecting Castle → House → Coop ---
+    // --- Main path + branch to Mines ---
     const pathG = this.add.graphics();
     pathG.fillStyle(0x8b7355, 0.95);
     pathG.lineStyle(2, 0x6b5344);
+    // Main ribbon: Castle → House → junction → Coop
     pathG.beginPath();
-    // Top edge (winds downward toward center)
     pathG.moveTo(castleX + 35, groundY + 12);
-    pathG.lineTo(300, groundY + 50);
-    pathG.lineTo(houseX - 20, groundY + 35);
-    pathG.lineTo(houseX + 20, groundY + 48);
-    pathG.lineTo(500, groundY + 50);
+    pathG.lineTo(240, groundY + 48);
+    pathG.lineTo(houseX - 15, groundY + 38);
+    pathG.lineTo(houseX + 30, groundY + 50);
+    pathG.lineTo(420, groundY + 52);   // junction before Mines
+    pathG.lineTo(580, groundY + 48);
     pathG.lineTo(coopX - 35, groundY + 12);
-    // Bottom edge (wider, winds back)
     pathG.lineTo(coopX - 35, groundY + 48);
-    pathG.lineTo(500, groundY + 42);
-    pathG.lineTo(houseX + 20, groundY + 62);
-    pathG.lineTo(houseX - 20, groundY + 55);
-    pathG.lineTo(300, groundY + 42);
+    pathG.lineTo(580, groundY + 42);
+    pathG.lineTo(420, groundY + 48);
+    pathG.lineTo(houseX + 30, groundY + 58);
+    pathG.lineTo(houseX - 15, groundY + 48);
+    pathG.lineTo(240, groundY + 42);
     pathG.lineTo(castleX + 35, groundY + 48);
+    pathG.closePath();
+    pathG.fillPath();
+    pathG.strokePath();
+    // Branch path up to Mines (curving strip from main path)
+    pathG.beginPath();
+    pathG.moveTo(405, groundY + 40);
+    pathG.lineTo(455, groundY + 25);
+    pathG.lineTo(minesX - 5, minesY + 50);
+    pathG.lineTo(minesX + 15, minesY + 52);
+    pathG.lineTo(460, groundY + 55);
+    pathG.lineTo(410, groundY + 48);
     pathG.closePath();
     pathG.fillPath();
     pathG.strokePath();
@@ -123,6 +141,30 @@ export default class OverworldMapScene extends Phaser.Scene {
     const houseLabel = txt(houseX, groundY + 50, 'House', '#ddddbb', 8);
     this.add.existing(houseLabel);
 
+    // --- Mines (branch path): dome on shaft with entrance ---
+    const drawMines = (x, y, scale = 1) => {
+      const g = this.add.graphics();
+      const s = scale;
+      // Shaft (narrow vertical structure, mine entrance)
+      g.fillStyle(0x6b5344, 1);
+      g.fillRect(x - 12 * s, y + 20 * s, 24 * s, 45 * s);
+      g.lineStyle(1, 0x5d4a3a);
+      g.strokeRect(x - 12 * s, y + 20 * s, 24 * s, 45 * s);
+      // Dome / mushroom cap on top
+      g.fillStyle(0x8b7355, 1);
+      g.fillEllipse(x, y - 5 * s, 50 * s, 30 * s);
+      g.lineStyle(2, 0x6b5344);
+      g.strokeEllipse(x, y - 5 * s, 50 * s, 30 * s);
+      // Rectangular opening on front of dome
+      g.fillStyle(0x4a3a2a, 1);
+      g.fillRect(x - 10 * s, y - 18 * s, 20 * s, 14 * s);
+      return g;
+    };
+    const minesG = drawMines(minesX, minesY, 1);
+    this.add.existing(minesG);
+    const minesLabel = txt(minesX, minesY + 90, 'Mines', '#ddddbb', 8);
+    this.add.existing(minesLabel);
+
     // --- Coop (right): rectangular with rounded roof, chicken ---
     const drawCoop = (x, y, scale = 1) => {
       const g = this.add.graphics();
@@ -158,15 +200,13 @@ export default class OverworldMapScene extends Phaser.Scene {
       return hit;
     };
 
-    // Castle: "Coming soon" - show tooltip, not clickable for now
-    const castleHit = this.add.rectangle(castleX, buildingBaseY - 15, 90, 90);
-    castleHit.setInteractive({ useHandCursor: false });
-    const castleTooltip = txt(castleX, groundY + 80, 'Coming soon', '#888866', 6);
-    castleTooltip.setVisible(false);
-    castleHit.on('pointerover', () => castleTooltip.setVisible(true));
-    castleHit.on('pointerout', () => castleTooltip.setVisible(false));
+    // Castle -> CastleScene
+    const castleHit = makeLocation(castleX, buildingBaseY - 15, 90, 90, 'CastleScene');
     this.add.existing(castleHit);
-    this.add.existing(castleTooltip);
+
+    // Mines -> MinesScene
+    const minesHit = makeLocation(minesX, minesY + 25, 70, 100, 'MinesScene');
+    this.add.existing(minesHit);
 
     // House -> NoobsHouseScene
     const houseHit = makeLocation(houseX, buildingBaseY - 15, 100, 110, 'NoobsHouseScene');

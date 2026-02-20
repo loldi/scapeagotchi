@@ -3,6 +3,7 @@
  */
 
 import { getPlayer } from '../state/gameState.js';
+import { setCurrentScene, saveGame } from '../state/save.js';
 import { CombatState } from '../combat/combatEngine.js';
 import { getWeapon } from '../data/weapons.js';
 import { getNpc } from '../data/npcs.js';
@@ -27,6 +28,8 @@ export default class GameScene extends Phaser.Scene {
   }
 
   create() {
+    setCurrentScene('GameScene');
+    saveGame();
     this.chicken = null;
     this.chickenIdleTween = null;
     this.chickenWanderTween = null;
@@ -325,7 +328,6 @@ export default class GameScene extends Phaser.Scene {
       this.statsPanel.setVisible(panel === 'stats');
       this.inventoryPanel.setVisible(panel === 'inventory');
       this.equipmentPanel.setVisible(panel === 'equipment');
-      this.menuPanel.setVisible(panel === 'menu');
       
       // Refresh inventory display when opening
       if (panel === 'inventory') {
@@ -341,7 +343,12 @@ export default class GameScene extends Phaser.Scene {
     createNavButton(navCenters[0], Y_NAV, navBtnW, navBtnH, 'Stats', () => openMenu('stats'));
     createNavButton(navCenters[1], Y_NAV, navBtnW, navBtnH, 'Inv', () => openMenu('inventory'));
     createNavButton(navCenters[2], Y_NAV, navBtnW, navBtnH, 'Equip', () => openMenu('equipment'));
-    createNavButton(navCenters[3], Y_NAV, navBtnW, navBtnH, 'Menu', () => openMenu('menu'));
+    createNavButton(navCenters[3], Y_NAV, navBtnW, navBtnH, 'Map', () => {
+      this.statsPanel.setVisible(false);
+      this.inventoryPanel.setVisible(false);
+      this.equipmentPanel.setVisible(false);
+      this.scene.start('OverworldMapScene', { from: 'GameScene' });
+    });
 
     // --- Stats panel ---
     this.statsPanel = this.add.container(0, 0);
@@ -366,14 +373,6 @@ export default class GameScene extends Phaser.Scene {
     this.buildEquipmentPanel(this.equipmentPanel, txt, W, H);
     const closeEquip = createActionButton(W - 60, 50, 72, 36, 'Close', () => openMenu(null));
     this.equipmentPanel.add([closeEquip.box, closeEquip.labelTxt, closeEquip.hit]);
-
-    // --- Menu panel ---
-    this.menuPanel = this.add.container(0, 0);
-    this.menuPanel.setVisible(false);
-    this.menuPanel.setDepth(800);
-    this.buildMenuPanel(this.menuPanel, txt, W, H);
-    const closeMenu = createActionButton(W - 60, 50, 72, 36, 'Close', () => openMenu(null));
-    this.menuPanel.add([closeMenu.box, closeMenu.labelTxt, closeMenu.hit]);
 
     // Right-click context menu (blocker + panel; panel content filled in showNpcContextMenu)
     this.contextMenuContainer = this.add.container(0, 0);
@@ -985,6 +984,29 @@ export default class GameScene extends Phaser.Scene {
         g.strokeEllipse(0, 0, s * 0.8, s * 1.0);
         break;
       }
+      case 'bronze_pickaxe': {
+        g.fillStyle(0x8b7355, 1);
+        g.fillRect(-s * 0.3, -s * 1.2, s * 0.2, s * 2.2);
+        g.fillStyle(0xcd7f32, 1);
+        g.fillRect(-s * 0.9, s * 0.3, s * 1.4, s * 0.2);
+        g.fillRect(-s * 0.85, s * 0.5, s * 0.25, s * 0.6);
+        g.fillRect(s * 0.6, s * 0.5, s * 0.25, s * 0.6);
+        break;
+      }
+      case 'copper_ore': {
+        g.fillStyle(0xb87333, 1);
+        g.fillEllipse(0, 0, s * 1.0, s * 0.8);
+        g.lineStyle(1, 0x8b5a2b);
+        g.strokeEllipse(0, 0, s * 1.0, s * 0.8);
+        break;
+      }
+      case 'tin_ore': {
+        g.fillStyle(0x808090, 1);
+        g.fillEllipse(0, 0, s * 1.0, s * 0.8);
+        g.lineStyle(1, 0x606070);
+        g.strokeEllipse(0, 0, s * 1.0, s * 0.8);
+        break;
+      }
       default:
         // Generic box for unknown items
         g.fillStyle(0x666688, 0.8);
@@ -1105,33 +1127,6 @@ export default class GameScene extends Phaser.Scene {
     const rightY = 240;
 
     addSlot(rightX, rightY, 'Shield');
-  }
-
-  buildMenuPanel(container, txt, W, H) {
-    const bg = this.add.graphics();
-    bg.fillStyle(0x0a0a1a, 0.98);
-    bg.fillRect(0, 0, W, H);
-    container.add(bg);
-
-    container.add(txt(W / 2, 24, 'Menu', 0xffffff, 14).setOrigin(0.5));
-    const goMapBtn = this.add.graphics();
-    goMapBtn.fillStyle(0x333355, 0.9);
-    goMapBtn.fillRoundedRect(W / 2 - 80, 170, 160, 40, 4);
-    goMapBtn.lineStyle(1, 0x555588);
-    goMapBtn.strokeRoundedRect(W / 2 - 80, 170, 160, 40, 4);
-    container.add(goMapBtn);
-    container.add(txt(W / 2, 190, 'World Map', 0xaaaadd, 10).setOrigin(0.5));
-    const goMapHit = this.add.rectangle(W / 2, 190, 160, 40);
-    goMapHit.setInteractive({ useHandCursor: true });
-    goMapHit.on('pointerdown', () => {
-      this.statsPanel.setVisible(false);
-      this.inventoryPanel.setVisible(false);
-      this.equipmentPanel.setVisible(false);
-      this.menuPanel.setVisible(false);
-      this.scene.start('OverworldMapScene', { from: 'GameScene' });
-    });
-    container.add(goMapHit);
-    container.add(txt(W / 2, 240, 'Settings & more coming soon', 0x555566, 8).setOrigin(0.5));
   }
 
   startCombat(npcId) {

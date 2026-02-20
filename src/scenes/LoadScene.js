@@ -1,6 +1,9 @@
 /**
- * Loading scene: displays game title, loading bar, and Login button. Game starts only after Login is clicked.
+ * Loading scene: displays game title, loading bar, and Login/Continue button. Game starts only after click.
  */
+
+import { initGameState } from '../state/gameState.js';
+import { loadGame, hasSave, clearSave } from '../state/save.js';
 
 export default class LoadScene extends Phaser.Scene {
   constructor() {
@@ -74,7 +77,8 @@ export default class LoadScene extends Phaser.Scene {
     drawBtn();
     this.add.existing(loginBox);
 
-    const loginText = this.add.text(btnX, btnY, 'Login', {
+    const btnLabel = hasSave() ? 'Continue' : 'Login';
+    const loginText = this.add.text(btnX, btnY, btnLabel, {
       fontSize: '18px',
       fontFamily: '"Press Start 2P", monospace',
       color: '#eaeaea'
@@ -87,9 +91,49 @@ export default class LoadScene extends Phaser.Scene {
     loginHit.setInteractive({ useHandCursor: true });
     loginHit.on('pointerover', () => drawBtn(true));
     loginHit.on('pointerout', () => drawBtn(false));
-    loginHit.on('pointerdown', () => {
+    const startGame = (useSave) => {
+      if (useSave) {
+        const saved = loadGame();
+        if (saved?.player) {
+          initGameState(saved.player);
+          const sceneKey = saved.lastScene || 'OverworldMapScene';
+          const validScenes = ['NoobsHouseScene', 'OverworldMapScene', 'GameScene', 'MinesScene', 'CastleScene'];
+          if (validScenes.includes(sceneKey)) {
+            this.scene.start(sceneKey);
+          } else {
+            this.scene.start('OverworldMapScene', { from: 'NoobsHouseScene' });
+          }
+          return;
+        }
+      }
+      clearSave();
+      initGameState();
       this.scene.start('NoobsHouseScene');
-    });
-    this.add.existing(loginHit);
+    };
+    loginHit.on('pointerdown', () => startGame(true));
+
+    if (hasSave()) {
+      const newGameY = btnY + 60;
+      const newBox = this.add.graphics();
+      const drawNewBtn = (hover = false) => {
+        newBox.clear();
+        newBox.fillStyle(hover ? 0x444466 : 0x333355, 0.95);
+        newBox.fillRoundedRect(btnX - btnW / 2, newGameY - btnH / 2, btnW, btnH, 6);
+        newBox.lineStyle(2, hover ? 0x8888cc : 0x555588);
+        newBox.strokeRoundedRect(btnX - btnW / 2, newGameY - btnH / 2, btnW, btnH, 6);
+      };
+      drawNewBtn();
+      this.add.existing(newBox);
+      this.add.text(btnX, newGameY, 'New Game', {
+        fontSize: '18px',
+        fontFamily: '"Press Start 2P", monospace',
+        color: '#eaeaea'
+      }).setOrigin(0.5).setPadding(10, 6, 10, 6);
+      const newHit = this.add.rectangle(btnX, newGameY, btnW, btnH);
+      newHit.setInteractive({ useHandCursor: true });
+      newHit.on('pointerover', () => drawNewBtn(true));
+      newHit.on('pointerout', () => drawNewBtn(false));
+      newHit.on('pointerdown', () => startGame(false));
+    }
   }
 }

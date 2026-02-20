@@ -1,9 +1,12 @@
 import Phaser from 'phaser';
 import { initGameState } from './state/gameState.js';
+import { saveGame } from './state/save.js';
 import LoadScene from './scenes/LoadScene.js';
 import NoobsHouseScene from './scenes/NoobsHouseScene.js';
 import OverworldMapScene from './scenes/OverworldMapScene.js';
 import GameScene from './scenes/GameScene.js';
+import MinesScene from './scenes/MinesScene.js';
+import CastleScene from './scenes/CastleScene.js';
 
 initGameState();
 
@@ -54,7 +57,7 @@ const config = {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH
   },
-  scene: [LoadScene, NoobsHouseScene, OverworldMapScene, GameScene],
+  scene: [LoadScene, NoobsHouseScene, OverworldMapScene, GameScene, MinesScene, CastleScene],
   callbacks: {
     postBoot: (game) => {
       // Force crisp pixel scaling on the canvas (nearest-neighbor when browser scales it)
@@ -68,6 +71,8 @@ const config = {
         applyScale();
         game.scale.refresh();
       });
+      // Save on tab close
+      window.addEventListener('beforeunload', () => saveGame());
     }
   }
 };
